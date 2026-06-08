@@ -1,0 +1,174 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-brand-50: #eef2ff;
+  --color-brand-100: #e0e7ff;
+  --color-brand-200: #c7d2fe;
+  --color-brand-300: #a5b4fc;
+  --color-brand-400: #818cf8;
+  --color-brand-500: #6366f1;
+  --color-brand-600: #4f46e5;
+  --color-brand-700: #4338ca;
+  --color-brand-800: #3730a3;
+  --color-brand-900: #312e81;
+
+  --color-surface-50: #f8fafc;
+  --color-surface-100: #f1f5f9;
+  --color-surface-200: #e2e8f0;
+  --color-surface-300: #cbd5e1;
+  --color-surface-400: #94a3b8;
+  --color-surface-500: #64748b;
+  --color-surface-600: #475569;
+  --color-surface-700: #334155;
+  --color-surface-800: #1e293b;
+  --color-surface-900: #0f172a;
+  --color-surface-950: #020617;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--color-surface-950);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.font-display {
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.glass {
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(148, 163, 184, 0.08);
+}
+
+/* ─── Leaflet Dark Theme Overrides ─── */
+.leaflet-container {
+  background: #0f172a !important;
+  font-family: 'Inter', sans-serif !important;
+}
+
+.leaflet-control-zoom a {
+  background: rgba(15, 23, 42, 0.85) !important;
+  color: #cbd5e1 !important;
+  border-color: rgba(148, 163, 184, 0.12) !important;
+  backdrop-filter: blur(8px);
+  transition: all 0.15s;
+}
+.leaflet-control-zoom a:hover {
+  background: rgba(30, 41, 59, 0.9) !important;
+  color: #f1f5f9 !important;
+}
+
+.leaflet-control-attribution {
+  background: rgba(15, 23, 42, 0.7) !important;
+  color: #64748b !important;
+  font-size: 9px !important;
+  padding: 2px 8px !important;
+  backdrop-filter: blur(4px);
+}
+.leaflet-control-attribution a {
+  color: #818cf8 !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background: rgba(15, 23, 42, 0.95) !important;
+  backdrop-filter: blur(12px);
+  color: #e2e8f0 !important;
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 10px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+}
+.leaflet-popup-content {
+  margin: 10px 12px !important;
+  font-size: 12px !important;
+}
+.leaflet-popup-tip {
+  background: rgba(15, 23, 42, 0.95) !important;
+  border: 1px solid rgba(148, 163, 184, 0.1);
+}
+.leaflet-popup-close-button {
+  color: #64748b !important;
+  top: 6px !important;
+  right: 6px !important;
+}
+
+.leaflet-tooltip {
+  background: rgba(15, 23, 42, 0.85) !important;
+  color: #cbd5e1 !important;
+  border: 1px solid rgba(148, 163, 184, 0.1) !important;
+  font-size: 10px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  padding: 2px 8px !important;
+  border-radius: 4px !important;
+  backdrop-filter: blur(4px);
+}
+
+/* Marker cluster overrides */
+.marker-cluster-small {
+  background-color: rgba(99, 102, 241, 0.15) !important;
+}
+.marker-cluster-small div {
+  background-color: rgba(99, 102, 241, 0.3) !important;
+  color: #a5b4fc !important;
+  font-weight: 600 !important;
+}
+.marker-cluster-medium {
+  background-color: rgba(245, 158, 11, 0.15) !important;
+}
+.marker-cluster-medium div {
+  background-color: rgba(245, 158, 11, 0.3) !important;
+  color: #fcd34d !important;
+  font-weight: 600 !important;
+}
+.marker-cluster-large {
+  background-color: rgba(239, 68, 68, 0.15) !important;
+}
+.marker-cluster-large div {
+  background-color: rgba(239, 68, 68, 0.3) !important;
+  color: #fca5a5 !important;
+  font-weight: 600 !important;
+}
+
+/* Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes slide-up {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.2s ease-out;
+}

@@ -1,0 +1,97 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() { return request.auth != null; }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    
+    function isValidId(id) { 
+        return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
+
+    function isValidProject(data) {
+        return data.keys().hasAll(['name', 'status', 'userId']) &&
+            data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
+            data.status in ['active', 'review', 'draft'] &&
+            data.userId == request.auth.uid &&
+            (data.keys().hasAny(['progress']) == false || (data.progress is number)) &&
+            (data.keys().hasAny(['points']) == false || (data.points is number)) &&
+            (data.keys().hasAny(['due']) == false || (data.due is string && data.due.size() <= 100));
+    }
+
+    match /projects/{projectId} {
+      allow read, delete: if isSignedIn() && isValidId(projectId) && existing().userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(projectId) && isValidProject(incoming());
+      allow update: if isSignedIn() && isValidId(projectId) && isValidProject(incoming()) && incoming().userId == existing().userId;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    function isValidFile(data) {
+        return data.keys().hasAll(['name', 'type', 'userId']) &&
+            data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
+            data.type is string && data.type.size() > 0 && data.type.size() <= 50 &&
+            data.userId == request.auth.uid &&
+            (data.keys().hasAny(['size']) == false || (data.size is string && data.size.size() <= 50)) &&
+            (data.keys().hasAny(['date']) == false || (data.date is string && data.date.size() <= 50)) &&
+            (data.keys().hasAny(['status']) == false || (data.status is string && data.status.size() <= 50));
+    }
+
+    match /files/{fileId} {
+      allow read, delete: if isSignedIn() && isValidId(fileId) && existing().userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(fileId) && isValidFile(incoming());
+      allow update: if isSignedIn() && isValidId(fileId) && isValidFile(incoming()) && incoming().userId == existing().userId;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    function isValidActivity(data) {
+        return data.keys().hasAll(['text', 'userId']) &&
+            data.text is string && data.text.size() > 0 && data.text.size() <= 1000 &&
+            data.userId == request.auth.uid &&
+            (data.keys().hasAny(['icon']) == false || (data.icon is string && data.icon.size() <= 500)) &&
+            (data.keys().hasAny(['time']) == false || (data.time is string && data.time.size() <= 50)) &&
+            (data.keys().hasAny(['accent']) == false || (data.accent is string && data.accent.size() <= 100)) &&
+            (data.keys().hasAny(['createdAt']) == false || (data.createdAt is timestamp));
+    }
+
+    match /activities/{activityId} {
+      allow read, delete: if isSignedIn() && isValidId(activityId) && existing().userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(activityId) && isValidActivity(incoming());
+      allow update: if isSignedIn() && isValidId(activityId) && isValidActivity(incoming()) && incoming().userId == existing().userId;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    function isValidMessage(data) {
+        return data.keys().hasAll(['role', 'text', 'userId']) &&
+            data.role in ['user', 'ai'] &&
+            data.text is string && data.text.size() > 0 && data.text.size() <= 5000 &&
+            data.userId == request.auth.uid &&
+            (data.keys().hasAny(['createdAt']) == false || (data.createdAt is timestamp));
+    }
+
+    match /messages/{messageId} {
+      allow read, delete: if isSignedIn() && isValidId(messageId) && existing().userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(messageId) && isValidMessage(incoming());
+      allow update: if isSignedIn() && isValidId(messageId) && isValidMessage(incoming()) && incoming().userId == existing().userId;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    function isValidSnapshot(data) {
+        return data.keys().hasAll(['name', 'data', 'userId']) &&
+            data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
+            data.data is string && data.data.size() > 0 && data.data.size() <= 1048576 &&
+            data.userId == request.auth.uid &&
+            (data.keys().hasAny(['createdAt']) == false || (data.createdAt is timestamp));
+    }
+
+    match /snapshots/{snapshotId} {
+      allow read, delete: if isSignedIn() && isValidId(snapshotId) && existing().userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(snapshotId) && isValidSnapshot(incoming());
+      allow update: if isSignedIn() && isValidId(snapshotId) && isValidSnapshot(incoming()) && incoming().userId == existing().userId;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+  }
+}

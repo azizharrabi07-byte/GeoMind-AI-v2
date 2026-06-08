@@ -1,0 +1,92 @@
+{
+  "entities": {
+    "Project": {
+      "title": "Project",
+      "description": "Survey mapping project",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "review", "draft"] },
+        "progress": { "type": "number" },
+        "points": { "type": "number" },
+        "due": { "type": "string" },
+        "userId": { "type": "string" }
+      },
+      "required": ["name", "status", "userId"]
+    },
+    "File": {
+      "title": "File",
+      "description": "Uploaded survey file",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "size": { "type": "string" },
+        "date": { "type": "string" },
+        "status": { "type": "string" },
+        "userId": { "type": "string" }
+      },
+      "required": ["name", "type", "userId"]
+    },
+    "Activity": {
+      "title": "Activity",
+      "description": "System activity",
+      "type": "object",
+      "properties": {
+        "icon": { "type": "string" },
+        "text": { "type": "string" },
+        "time": { "type": "string" },
+        "accent": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["text", "userId"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Real-time AI Chat message",
+      "type": "object",
+      "properties": {
+        "role": { "type": "string", "enum": ["user", "ai"] },
+        "text": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["role", "text", "userId"]
+    },
+    "Snapshot": {
+      "title": "Snapshot",
+      "description": "Project state snapshot",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "data": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "data", "userId"]
+    }
+  },
+  "firestore": {
+    "projects": {
+      "schema": { "$ref": "#/entities/Project" },
+      "description": "Stores user projects"
+    },
+    "files": {
+      "schema": { "$ref": "#/entities/File" },
+      "description": "Stores user files"
+    },
+    "activities": {
+      "schema": { "$ref": "#/entities/Activity" },
+      "description": "Stores user activity log"
+    },
+    "messages": {
+      "schema": { "$ref": "#/entities/Message" },
+      "description": "Stores AI chat messages"
+    },
+    "snapshots": {
+      "schema": { "$ref": "#/entities/Snapshot" },
+      "description": "Stores project snapshots"
+    }
+  }
+}

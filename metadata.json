@@ -1,0 +1,6 @@
+{
+  "name": "GeoMind AI",
+  "description": "The AI Copilot for Survey Engineers. Connect field data to an intelligent platform for analysis, anomalies detection, and report generation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
