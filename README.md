@@ -1,4 +1,4 @@
-# GeoMind AI v3
+# GeoMind AI v4
 
 **Survey Project Operating System** — centralize files, maps, reports, and project knowledge for land surveying firms. AI (Gemini) assists analysis and reporting; the product is the workspace, not the chatbot.
 
@@ -72,7 +72,32 @@ Firm dashboard adds **Smart Search**, **Analytics**, and **Settings** (profile, 
 | **Phase 1** | UI shell, mock localStorage, project workspace | ✅ ~95% |
 | **Phase 2** | Supabase API, login, timeline restore, Map AI | ✅ Complete |
 | **Phase 3** | Search, analytics, PDF viewer, email reports, signup, preferences | ✅ Complete |
-| **Phase 4** | OAuth (Drive/OneDrive), deploy, mobile, LAS/RAW parsers | Planned |
+| **Phase 4** | Google Drive OAuth + file sync, offline UX polish | ✅ Complete |
+| **Phase 4b** | OneDrive/Outlook OAuth, deploy, mobile, LAS/RAW parsers | Planned |
+
+### Phase 4 deliverables
+
+- **Google Drive OAuth** — real OAuth 2.0 flow via `/api/integrations/google_drive/oauth/url`
+- **Drive file sync** — imports from `GeoMind Imports` folder → parse + AI analyze + timeline
+- **Token refresh** — automatic access token refresh via refresh_token
+- **Integrations UI** — Connect / Disconnect / Sync in Settings (no more demo_token)
+- **Offline UX** — banner only on dashboard/project routes, 3s grace period, Retry button
+- **Verify script** — `python backend/verify_phase4.py`
+
+#### Google Cloud setup (one-time)
+
+1. [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → Credentials
+2. Create **OAuth 2.0 Client ID** (Web application)
+3. Authorized redirect URI: `http://localhost:3001/api/integrations/google_drive/oauth/callback`
+4. Enable **Google Drive API**
+5. Add to `backend/.env`:
+   ```
+   GOOGLE_CLIENT_ID=your-client-id
+   GOOGLE_CLIENT_SECRET=your-client-secret
+   GOOGLE_REDIRECT_URI=http://localhost:3001/api/integrations/google_drive/oauth/callback
+   ```
+6. In Google Drive, create folder **GeoMind Imports** and add survey files (DXF, CSV, PDF, etc.)
+7. Settings → Connect Google Drive → Sync
 
 ### Phase 3 deliverables
 
@@ -162,7 +187,7 @@ Glossary for survey engineering and GeoMind-specific concepts.
 
 | Term | Definition |
 |------|------------|
-| **Google Drive** | Planned auto-sync of survey deliverables into projects |
+| **Google Drive** | OAuth-connected sync from `GeoMind Imports` folder into projects |
 | **OneDrive** | Enterprise file sync (Microsoft 365) |
 | **QGIS** | Open GIS; GeoMind imports GeoJSON, does not replace QGIS |
 | **AutoCAD** | CAD platform; GeoMind analyzes DXF imports |
@@ -197,6 +222,8 @@ Glossary for survey engineering and GeoMind-specific concepts.
 | `GET /api/search?q=` | Smart search |
 | `GET /api/analytics` | Firm stats |
 | `GET/PUT /api/preferences` | User AI prefs |
+| `GET /api/integrations/google_drive/oauth/url` | Start Drive OAuth |
+| `POST /api/integrations/google_drive/sync` | Import files from Drive |
 
 ---
 
@@ -206,6 +233,7 @@ Glossary for survey engineering and GeoMind-specific concepts.
 cd backend
 python verify_phase2.py   # core API + timeline
 python verify_phase3.py   # search, analytics, preferences, email
+python verify_phase4.py   # Google Drive OAuth + integrations
 npm run lint              # TypeScript check
 ```
 
@@ -234,4 +262,4 @@ GeoMind-AI-v2/
 
 Built for survey engineering firms. See `docs/tor.md` for product vision and `docs/integrations.md` for CAD/GIS tool compatibility matrix.
 
-**Version:** 3.0.0 · **June 2026**
+**Version:** 4.0.0 · **June 2026**

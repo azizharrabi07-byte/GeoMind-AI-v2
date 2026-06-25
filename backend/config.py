@@ -17,8 +17,13 @@ class Settings(BaseSettings):
     # AI Provider
     gemini_api_key: str = ""
 
+    # Google Drive OAuth (Phase 4)
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    google_redirect_uri: str = "http://localhost:3001/api/integrations/google_drive/oauth/callback"
+
     # App
-    app_url: str = "http://localhost:3000"
+    app_url: str = "http://localhost:5173"
     node_env: str = "development"
     port: int = 3000
 

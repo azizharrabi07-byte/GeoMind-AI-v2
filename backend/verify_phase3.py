@@ -32,7 +32,7 @@ def main():
     results = []
 
     code, health = req("GET", "/api/health")
-    results.append(ok("Health v3", code == 200 and health.get("phase") == 3, str(health)))
+    results.append(ok("Health v3+", code == 200 and (health.get("phase") or 0) >= 3, str(health)))
 
     code, search = req("GET", "/api/search/?q=test")
     results.append(ok("Smart Search", code == 200 and "projects" in search, f"total={search.get('total', 0)}"))

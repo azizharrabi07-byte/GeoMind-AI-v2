@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { OverviewTab } from './tabs/OverviewTab'
 import { ProjectsTab } from './tabs/ProjectsTab'
 import { SearchTab } from './tabs/SearchTab'
@@ -17,9 +17,26 @@ const TABS: { id: TabId; label: string; icon: string }[] = [
   { id: 'settings', label: 'Settings', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z' },
 ]
 
+function initialTabFromHash(): TabId {
+  const hash = window.location.hash.replace(/^#/, '')
+  const [, query] = hash.split('?')
+  const tab = new URLSearchParams(query || '').get('tab')
+  const valid: TabId[] = ['overview', 'projects', 'search', 'analytics', 'settings']
+  return tab && valid.includes(tab as TabId) ? (tab as TabId) : 'overview'
+}
+
 export function DashboardLayout({ user }: { user: any }) {
-  const [activeTab, setActiveTab] = useState<TabId>('overview')
+  const [activeTab, setActiveTab] = useState<TabId>(initialTabFromHash)
   const [sidebarOpen, setSidebarOpen] = useState(true)
+
+  useEffect(() => {
+    const onHash = () => {
+      const tab = initialTabFromHash()
+      if (tab !== 'overview' || window.location.hash.includes('tab=')) setActiveTab(tab)
+    }
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [])
 
   const renderTab = () => {
     switch (activeTab) {

@@ -245,14 +245,20 @@ export const db = {
     list: () => USE_MOCK
       ? Promise.resolve([])
       : apiFetch('/api/integrations/'),
+    oauthUrl: (provider: string) => USE_MOCK
+      ? Promise.resolve({ configured: false, url: null, message: 'API mode required' })
+      : apiFetch(`/api/integrations/${provider}/oauth/url`),
     connect: (data: any) => USE_MOCK
       ? Promise.resolve({ ok: true })
       : apiFetch('/api/integrations/', { method: 'POST', body: JSON.stringify(data) }),
     disconnect: (id: string) => USE_MOCK
       ? Promise.resolve({ ok: true })
       : apiFetch(`/api/integrations/${id}`, { method: 'DELETE' }),
-    sync: (provider: string) => USE_MOCK
-      ? Promise.resolve({ ok: true, message: `Sync initiated for ${provider}` })
-      : apiFetch(`/api/integrations/${provider}/sync`, { method: 'POST' }),
+    sync: (provider: string, projectId?: string) => USE_MOCK
+      ? Promise.resolve({ ok: true, message: `Sync initiated for ${provider}`, imported: 0 })
+      : apiFetch(`/api/integrations/${provider}/sync`, {
+          method: 'POST',
+          body: JSON.stringify(projectId ? { project_id: projectId } : {}),
+        }),
   },
 }

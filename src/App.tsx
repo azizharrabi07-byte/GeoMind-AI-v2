@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { LandingPage } from './pages/LandingPage'
 import { DashboardLayout } from './pages/DashboardLayout'
 import { ProjectWorkspace } from './pages/ProjectWorkspace'
@@ -8,19 +8,27 @@ import { fetchCurrentUser, FALLBACK_USER, requireAuth, isApiReachable } from './
 import { USE_MOCK } from './lib/data'
 import { supabase } from './lib/supabase'
 
+const OFFLINE_GRACE_MS = 3000
+
 export default function App() {
   const [route, setRoute] = useState(() => window.location.hash || '#home')
   const [user, setUser] = useState(FALLBACK_USER)
   const [ready, setReady] = useState(USE_MOCK)
   const [apiOffline, setApiOffline] = useState(false)
+  const [showOfflineBanner, setShowOfflineBanner] = useState(false)
   const [authenticated, setAuthenticated] = useState(USE_MOCK)
+  const [retrying, setRetrying] = useState(false)
 
-  async function loadUser() {
+  const parsed = parseRoute(route)
+  const isAppRoute = parsed.page === 'dashboard' || parsed.page === 'project'
+
+  const loadUser = useCallback(async () => {
     const u = await fetchCurrentUser()
     setUser(u)
     setApiOffline(!!u.apiOffline)
     setReady(true)
-  }
+    return u
+  }, [])
 
   useEffect(() => {
     if (USE_MOCK) {
@@ -30,15 +38,15 @@ export default function App() {
     }
     requireAuth().then(ok => {
       setAuthenticated(ok)
-      if (ok) loadUser()
+      if (ok && isAppRoute) loadUser()
       else setReady(true)
     })
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       setAuthenticated(!!session)
-      if (session) loadUser()
+      if (session && isAppRoute) loadUser()
     })
     return () => sub.subscription.unsubscribe()
-  }, [])
+  }, [loadUser, isAppRoute])
 
   useEffect(() => {
     const onHashChange = () => setRoute(window.location.hash || '#home')
@@ -47,14 +55,33 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (!apiOffline || USE_MOCK) return
+    if (USE_MOCK || !authenticated || !isAppRoute) return
+    if (!ready) loadUser()
+  }, [isAppRoute, authenticated, USE_MOCK, ready, loadUser])
+
+  useEffect(() => {
+    if (!apiOffline || USE_MOCK) {
+      setShowOfflineBanner(false)
+      return
+    }
+    const timer = setTimeout(() => setShowOfflineBanner(true), OFFLINE_GRACE_MS)
+    return () => clearTimeout(timer)
+  }, [apiOffline])
+
+  useEffect(() => {
+    if (!apiOffline || USE_MOCK || !isAppRoute) return
     const retry = setInterval(async () => {
       if (await isApiReachable()) loadUser()
     }, 5000)
     return () => clearInterval(retry)
-  }, [apiOffline])
+  }, [apiOffline, isAppRoute, loadUser])
 
-  const parsed = parseRoute(route)
+  async function handleRetry() {
+    setRetrying(true)
+    const u = await loadUser()
+    setRetrying(false)
+    if (!u.apiOffline) setShowOfflineBanner(false)
+  }
 
   if (!ready) {
     return (
@@ -64,14 +91,23 @@ export default function App() {
     )
   }
 
-  const offlineBanner = apiOffline && !USE_MOCK ? (
-    <div className="fixed top-0 left-0 right-0 z-[100] bg-amber-500/90 text-black text-xs text-center py-1.5 px-4">
-      Backend offline — open a terminal in GeoMind-AI-v2 and run{' '}
-      <code className="font-mono">npm start</code> (starts API + UI together)
+  const offlineBanner = showOfflineBanner && isAppRoute && !USE_MOCK ? (
+    <div className="fixed top-0 left-0 right-0 z-[100] bg-amber-500/90 text-black text-xs text-center py-1.5 px-4 flex items-center justify-center gap-3">
+      <span>
+        Backend offline — open a terminal in GeoMind-AI-v2 and run{' '}
+        <code className="font-mono">npm start</code>
+      </span>
+      <button
+        onClick={handleRetry}
+        disabled={retrying}
+        className="px-2 py-0.5 rounded bg-black/20 hover:bg-black/30 font-medium disabled:opacity-50"
+      >
+        {retrying ? 'Checking...' : 'Retry'}
+      </button>
     </div>
   ) : null
 
-  if (!USE_MOCK && !authenticated && (parsed.page === 'dashboard' || parsed.page === 'project')) {
+  if (!USE_MOCK && !authenticated && isAppRoute) {
     return <LoginPage onSuccess={() => { setAuthenticated(true); loadUser(); window.location.hash = '#dashboard' }} />
   }
 
@@ -93,10 +129,5 @@ export default function App() {
     )
   }
 
-  return (
-    <>
-      {offlineBanner}
-      <LandingPage onNavigate={(r) => { window.location.hash = r }} />
-    </>
-  )
+  return <LandingPage onNavigate={(r) => { window.location.hash = r }} />
 }

@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from config import settings
 from routers import (
     auth, projects, files, chat, gis, reports, integrations, activities, map_ai,
     search, analytics, preferences,
@@ -21,7 +22,7 @@ logger = logging.getLogger("geomind")
 app = FastAPI(
     title="GeoMind AI API",
     description="Backend for the Survey Engineering Intelligence Platform",
-    version="3.0.0",
+    version="4.0.0",
 )
 
 # CORS — restrict in production
@@ -51,7 +52,15 @@ app.include_router(preferences.router, prefix="/api/preferences", tags=["Prefere
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint."""
-    return {"status": "ok", "version": "3.0.0", "service": "GeoMind AI", "phase": 3}
+    return {
+        "status": "ok",
+        "version": "4.0.0",
+        "service": "GeoMind AI",
+        "phase": 4,
+        "google_drive_oauth": bool(
+            settings.google_client_id and settings.google_client_secret
+        ),
+    }
 
 
 if __name__ == "__main__":

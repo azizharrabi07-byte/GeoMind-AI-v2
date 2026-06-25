@@ -1,13 +1,11 @@
 """
 File upload, parsing, analysis, and version restore endpoints.
 """
-import uuid
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
 from typing import Optional
 from routers.auth import get_current_user
 from database import get_supabase
-from services.file_parser import parse_file
-from services.ai_service import analyze_file_with_ai
+from services.file_import_service import import_file_bytes
 from services.timeline_service import create_file_version, log_activity, restore_file_version
 
 router = APIRouter()
@@ -97,81 +95,18 @@ async def upload_file(
         raise HTTPException(status_code=400, detail="No filename")
 
     file_bytes = await file.read()
-    file_size = len(file_bytes)
-    ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
-
-    storage_path = f"{user['id']}/{uuid.uuid4()}/{file.filename}"
-    supabase.storage.from_("user-files").upload(
-        storage_path, file_bytes,
-        {"content-type": file.content_type or "application/octet-stream"},
-    )
-
-    preview_text = ""
-    file_data = {
-        "user_id": user["id"],
-        "project_id": project_id,
-        "filename": file.filename,
-        "file_ext": ext,
-        "file_size": file_size,
-        "mime_type": file.content_type or "",
-        "storage_path": storage_path,
-        "preview_text": "",
-        "status": "processing",
-    }
-    result = supabase.table("files").insert(file_data).execute()
-    file_record = result.data[0]
 
     try:
-        parsed = parse_file(file.filename, file_bytes)
-        preview_text = (parsed.get("text") or "")[:8000]
-        supabase.table("files").update({
-            "preview_text": preview_text,
-            "status": "analyzed",
-        }).eq("id", file_record["id"]).execute()
-        file_record["preview_text"] = preview_text
-        file_record["status"] = "analyzed"
-
-        ai_result = await analyze_file_with_ai(file.filename, ext, parsed.get("text", ""))
-
-        analysis_data = {
-            "user_id": user["id"],
-            "file_id": file_record["id"],
-            "summary": ai_result.get("summary", ""),
-            "warnings": ai_result.get("warnings", []),
-            "insights": ai_result.get("insights", []),
-            "next_actions": ai_result.get("nextActions", []),
-            "knowledge_graph": ai_result.get("knowledgeGraph", {"nodes": [], "edges": []}),
-            "metadata": parsed.get("metadata", {}),
-            "extracted_text": preview_text,
-            "model_used": ai_result.get("model", "gemini-2.5-flash"),
-        }
-        supabase.table("analysis_results").insert(analysis_data).execute()
-
-        version = create_file_version(supabase, user["id"], file_record, preview_text)
-        log_activity(
-            supabase, user["id"], project_id, "file_uploaded",
-            f'Uploaded and analyzed "{file.filename}"',
-            {
-                "file_id": file_record["id"],
-                "version_id": version.get("id"),
-                "filename": file.filename,
-                "navigate_tab": "files",
-            },
+        return await import_file_bytes(
+            supabase,
+            user["id"],
+            file.filename,
+            file_bytes,
+            content_type=file.content_type or "application/octet-stream",
+            project_id=project_id,
+            source="upload",
         )
-
-        analysis = {
-            "summary": ai_result.get("summary"),
-            "warnings": ai_result.get("warnings", []),
-            "insights": ai_result.get("insights", []),
-            "next_actions": ai_result.get("nextActions", []),
-        }
-        return {"file": file_record, "analysis": analysis}
-
     except Exception as e:
-        supabase.table("files").update({
-            "status": "error",
-            "error_message": str(e),
-        }).eq("id", file_record["id"]).execute()
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
 

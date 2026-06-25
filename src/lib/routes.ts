@@ -13,7 +13,8 @@ export function parseRoute(hash: string): {
   resourceId?: string
 } {
   const route = hash || '#home'
-  if (route === '#dashboard') return { page: 'dashboard' }
+  const dashboardPath = route.split('?')[0]
+  if (dashboardPath === '#dashboard') return { page: 'dashboard' }
   const match = route.match(/^#project\/([^/]+)(?:\/(\w+))?(?:\/([^/?]+))?$/)
   if (match) {
     const tab = match[2] as ProjectTab | undefined
