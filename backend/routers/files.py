@@ -2,7 +2,7 @@
 File upload, parsing, analysis, and version restore endpoints.
 """
 import uuid
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
 from typing import Optional
 from routers.auth import get_current_user
 from database import get_supabase
@@ -89,7 +89,7 @@ async def get_file(file_id: str, user: dict = Depends(get_current_user)):
 @router.post("/upload")
 async def upload_file(
     file: UploadFile = File(...),
-    project_id: Optional[str] = None,
+    project_id: Optional[str] = Form(None),
     user: dict = Depends(get_current_user),
 ):
     supabase = get_supabase()

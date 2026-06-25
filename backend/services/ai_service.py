@@ -10,6 +10,11 @@ from config import settings
 
 logger = logging.getLogger("geomind.ai")
 
+
+def _gemini_client():
+    from google import genai
+    return genai.Client(api_key=settings.gemini_api_key)
+
 # ─── Survey Knowledge Base (built-in RAG) ───
 SURVEY_KNOWLEDGE_BASE = [
     {
@@ -151,32 +156,24 @@ async def chat_with_ai(
         .replace("{message}", message)
 
     try:
-        from google.genai import types as genai_types
-        from google.genai import GoogleGenAI
-
-        client = GoogleGenAI(api_key=settings.gemini_api_key)
+        client = _gemini_client()
         response = client.models.generate_content(
             model="gemini-2.5-flash",
             contents=full_prompt,
-            config={
-                "temperature": 0.3,
-                "max_output_tokens": 8192,
-            }
         )
         reply = response.text or ""
         return {"reply": reply, "model": "gemini-2.5-flash"}
 
     except Exception as e:
         logger.error(f"Gemini API error: {e}")
-        # Fallback to smaller model
         try:
-            client = GoogleGenAI(api_key=settings.gemini_api_key)
+            client = _gemini_client()
             response = client.models.generate_content(
-                model="gemini-2.5-flash-8b",
+                model="gemini-2.0-flash",
                 contents=full_prompt,
             )
             reply = response.text or ""
-            return {"reply": reply, "model": "gemini-2.5-flash-8b"}
+            return {"reply": reply, "model": "gemini-2.0-flash"}
         except Exception as e2:
             logger.error(f"Gemini fallback error: {e2}")
             return {"reply": "I apologize, but I'm having trouble connecting to my AI engine. Please try again in a moment.", "model": "none"}
@@ -198,16 +195,16 @@ Return a JSON object with:
 Return strictly JSON."""
 
     try:
-        from google.genai import GoogleGenAI
-        client = GoogleGenAI(api_key=settings.gemini_api_key)
+        from google.genai import types
+        client = _gemini_client()
         response = client.models.generate_content(
             model="gemini-2.5-flash",
             contents=prompt,
-            config={
-                "temperature": 0.2,
-                "max_output_tokens": 4096,
-                "response_mime_type": "application/json",
-            }
+            config=types.GenerateContentConfig(
+                temperature=0.2,
+                max_output_tokens=4096,
+                response_mime_type="application/json",
+            ),
         )
         text = response.text or "{}"
         # Clean potential markdown wrappers
