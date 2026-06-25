@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from routers import auth, projects, files, chat, gis, reports, integrations, activities
+from routers import auth, projects, files, chat, gis, reports, integrations, activities, map_ai
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("geomind")
@@ -39,6 +39,7 @@ app.include_router(gis.router, prefix="/api/gis", tags=["GIS"])
 app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
 app.include_router(integrations.router, prefix="/api/integrations", tags=["Integrations"])
 app.include_router(activities.router, prefix="/api/activities", tags=["Activities"])
+app.include_router(map_ai.router, prefix="/api/map-ai", tags=["Map AI"])
 
 
 @app.get("/api/health")

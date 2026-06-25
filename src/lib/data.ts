@@ -7,6 +7,7 @@ import {
   mockActivities, mockProfiles, mockReports,
 } from './mockStore'
 import { API_BASE_URL } from './supabase'
+import { getAccessToken } from './auth'
 
 export const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false'
 
@@ -17,6 +18,8 @@ async function apiFetch(path: string, options: RequestInit = {}) {
   const headers: Record<string, string> = {
     ...(options.headers as Record<string, string> || {}),
   }
+  const token = await getAccessToken()
+  if (token) headers['Authorization'] = `Bearer ${token}`
   if (!(options.body instanceof FormData)) {
     headers['Content-Type'] = 'application/json'
   }
@@ -171,5 +174,17 @@ export const db = {
     delete: (id: string) => USE_MOCK
       ? Promise.resolve(mockReports.delete(id))
       : apiFetch(`/api/reports/${id}`, { method: 'DELETE' }),
+  },
+
+  mapAi: {
+    send: (data: {
+      message: string
+      project_name?: string
+      changes: any[]
+      stats: { points: number; lines: number; polygons: number }
+      project_id?: string
+    }) => USE_MOCK
+      ? Promise.resolve({ reply: 'Map AI requires API mode (VITE_USE_MOCK=false)' })
+      : apiFetch('/api/map-ai/', { method: 'POST', body: JSON.stringify(data) }),
   },
 }

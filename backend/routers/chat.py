@@ -28,14 +28,16 @@ class ChatResponse(BaseModel):
 
 
 @router.get("/sessions")
-async def list_sessions(user: dict = Depends(get_current_user)):
-    """List chat sessions for current user."""
+async def list_sessions(
+    project_id: Optional[str] = None,
+    user: dict = Depends(get_current_user),
+):
+    """List chat sessions for current user, optionally by project."""
     supabase = get_supabase()
-    result = supabase.table("chat_sessions") \
-        .select("*") \
-        .eq("user_id", user["id"]) \
-        .order("updated_at", desc=True) \
-        .execute()
+    query = supabase.table("chat_sessions").select("*").eq("user_id", user["id"])
+    if project_id:
+        query = query.eq("project_id", project_id)
+    result = query.order("updated_at", desc=True).execute()
     return result.data
 
 

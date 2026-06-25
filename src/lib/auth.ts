@@ -1,5 +1,6 @@
-import { API_BASE_URL } from './supabase'
-import { USE_MOCK } from './data'
+import { API_BASE_URL, supabase } from './supabase'
+
+const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false'
 
 const DEV_USER_ID = import.meta.env.VITE_DEV_USER_ID || '4a382943-631c-4693-99e7-7b367f19501a'
 
@@ -21,10 +22,20 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}) {
   }
 }
 
+export async function getAccessToken(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession()
+  return data.session?.access_token ?? null
+}
+
 export async function fetchCurrentUser(): Promise<typeof FALLBACK_USER & { apiOffline?: boolean }> {
   if (USE_MOCK) return FALLBACK_USER
+
+  const token = await getAccessToken()
+  const headers: Record<string, string> = {}
+  if (token) headers['Authorization'] = `Bearer ${token}`
+
   try {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/api/auth/me`)
+    const res = await fetchWithTimeout(`${API_BASE_URL}/api/auth/me`, { headers })
     if (!res.ok) throw new Error(`auth ${res.status}`)
     const profile = await res.json()
     return {
@@ -45,4 +56,10 @@ export async function isApiReachable(): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+export async function requireAuth(): Promise<boolean> {
+  if (USE_MOCK) return true
+  const { data } = await supabase.auth.getSession()
+  return !!data.session
 }

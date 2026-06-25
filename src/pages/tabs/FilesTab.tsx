@@ -8,6 +8,14 @@ const FILE_ICONS: Record<string, string> = {
   xlsx: '📗', xls: '📗', png: '🖼️', jpg: '🖼️', jpeg: '🖼️', txt: '📝',
 }
 
+const IMAGE_EXTS = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif', 'tiff'])
+
+function imagePreviewUrl(file: any): string | null {
+  if (file?.preview_image) return file.preview_image
+  if (file?.download_url && IMAGE_EXTS.has((file.file_ext || '').toLowerCase())) return file.download_url
+  return null
+}
+
 export function FilesTab({ user, projectId, project, resourceId, onNavigate }: TabProps) {
   const [files, setFiles] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -40,10 +48,11 @@ export function FilesTab({ user, projectId, project, resourceId, onNavigate }: T
 
   async function selectFile(file: any) {
     setSelectedId(file.id)
-    setPreviewImage(file.preview_image || null)
+    setPreviewImage(imagePreviewUrl(file))
     const data = await db.files.get(file.id)
     setSelectedDetail(data)
-    if (data?.file?.preview_image) setPreviewImage(data.file.preview_image)
+    const url = imagePreviewUrl(data?.file)
+    if (url) setPreviewImage(url)
   }
 
   async function handleUpload(fileList: FileList | null) {
@@ -165,6 +174,12 @@ export function FilesTab({ user, projectId, project, resourceId, onNavigate }: T
                     </div>
                   </div>
                   <div className="flex gap-2 flex-shrink-0">
+                    {sel.download_url && (
+                      <a href={sel.download_url} target="_blank" rel="noopener noreferrer"
+                        className="text-xs text-brand-300 px-3 py-1.5 bg-brand-500/10 rounded-lg">
+                        Open
+                      </a>
+                    )}
                     <button onClick={generateFileReport} disabled={generatingReport}
                       className="text-xs text-violet-300 px-3 py-1.5 bg-violet-500/10 rounded-lg disabled:opacity-50">
                       {generatingReport ? '...' : 'Report'}

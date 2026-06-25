@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { MapContainer, TileLayer, Marker, Polyline, Polygon, useMapEvents, useMap } from 'react-leaflet'
 import L from 'leaflet'
-import { db } from '../../lib/data'
+import { db, USE_MOCK } from '../../lib/data'
 import type { TabProps } from '../../lib/types'
 import { generateMapChangeReport, type MapChangeEntry } from '../../lib/mapAi'
 import { Toast } from '../../components/Toast'
@@ -80,6 +80,7 @@ export function MapTab({ user, projectId, project }: TabProps) {
   const [changes, setChanges] = useState<MapChangeEntry[]>([])
   const [mapAiInput, setMapAiInput] = useState('')
   const [mapAiMessages, setMapAiMessages] = useState<{ role: string; content: string }[]>([])
+  const [mapAiLoading, setMapAiLoading] = useState(false)
   const [selectedFeatureId, setSelectedFeatureId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
   const [layerVisibility, setLayerVisibility] = useState({ points: true, lines: true, polygons: true })
@@ -323,19 +324,37 @@ export function MapTab({ user, projectId, project }: TabProps) {
     }
   }
 
-  function sendMapAi(preset?: string) {
+  async function sendMapAi(preset?: string) {
     const q = preset || mapAiInput.trim()
-    if (!q) return
+    if (!q || mapAiLoading) return
     setMapAiInput('')
     setMapAiMessages(m => [...m, { role: 'user', content: q }])
-    const reply = generateMapChangeReport(
-      changes,
-      { points: points.length, lines: lines.length, polygons: polygons.length },
-      project?.name,
-      q,
-    )
-    setMapAiMessages(m => [...m, { role: 'assistant', content: reply }])
+    setMapAiLoading(true)
     setSidePanel('ai')
+    try {
+      let reply: string
+      if (USE_MOCK) {
+        reply = generateMapChangeReport(
+          changes,
+          { points: points.length, lines: lines.length, polygons: polygons.length },
+          project?.name,
+          q,
+        )
+      } else {
+        const result = await db.mapAi.send({
+          message: q,
+          project_name: project?.name,
+          changes,
+          stats: { points: points.length, lines: lines.length, polygons: polygons.length },
+          project_id: projectId,
+        })
+        reply = result.reply || 'Map analysis complete.'
+      }
+      setMapAiMessages(m => [...m, { role: 'assistant', content: reply }])
+    } catch (e) {
+      setMapAiMessages(m => [...m, { role: 'assistant', content: `Map AI error: ${(e as Error).message}` }])
+    }
+    setMapAiLoading(false)
   }
 
   const sideTabs: { id: SidePanel; label: string }[] = [
@@ -557,11 +576,14 @@ export function MapTab({ user, projectId, project }: TabProps) {
             {sidePanel === 'ai' && (
               <div className="flex flex-col flex-1 min-h-0">
                 <div className="flex-1 min-h-0 overflow-y-auto space-y-2 mb-2">
-                  {mapAiMessages.length === 0 ? (
+                  {mapAiLoading && (
+                    <div className="text-[11px] text-violet-300 animate-pulse">Map AI thinking...</div>
+                  )}
+                  {mapAiMessages.length === 0 && !mapAiLoading ? (
                     <div className="space-y-2">
                       <p className="text-[11px] text-surface-500">Map AI tracks your edits and generates change reports.</p>
-                      <button onClick={() => sendMapAi('generate map report')}
-                        className="w-full py-2 bg-violet-500/20 text-violet-300 rounded-lg text-[11px] font-medium">
+                      <button onClick={() => sendMapAi('generate map report')} disabled={mapAiLoading}
+                        className="w-full py-2 bg-violet-500/20 text-violet-300 rounded-lg text-[11px] font-medium disabled:opacity-50">
                         Generate Change Report
                       </button>
                     </div>
@@ -585,7 +607,8 @@ export function MapTab({ user, projectId, project }: TabProps) {
                     placeholder="Ask about map changes..."
                     className="flex-1 bg-white/[0.04] border border-white/[0.06] rounded-lg px-2 py-1.5 text-xs outline-none min-w-0"
                   />
-                  <button onClick={() => sendMapAi()} className="px-2.5 py-1.5 bg-violet-600 rounded-lg text-xs">→</button>
+                  <button onClick={() => sendMapAi()} disabled={mapAiLoading}
+                    className="px-2.5 py-1.5 bg-violet-600 rounded-lg text-xs disabled:opacity-50">→</button>
                 </div>
               </div>
             )}

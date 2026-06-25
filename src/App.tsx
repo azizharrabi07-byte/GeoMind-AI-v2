@@ -2,26 +2,42 @@ import { useState, useEffect } from 'react'
 import { LandingPage } from './pages/LandingPage'
 import { DashboardLayout } from './pages/DashboardLayout'
 import { ProjectWorkspace } from './pages/ProjectWorkspace'
+import { LoginPage } from './pages/LoginPage'
 import { parseRoute } from './lib/routes'
-import { fetchCurrentUser, FALLBACK_USER } from './lib/auth'
+import { fetchCurrentUser, FALLBACK_USER, requireAuth } from './lib/auth'
 import { USE_MOCK } from './lib/data'
+import { supabase } from './lib/supabase'
 
 export default function App() {
   const [route, setRoute] = useState(() => window.location.hash || '#home')
   const [user, setUser] = useState(FALLBACK_USER)
   const [ready, setReady] = useState(USE_MOCK)
   const [apiOffline, setApiOffline] = useState(false)
+  const [authenticated, setAuthenticated] = useState(USE_MOCK)
+
+  async function loadUser() {
+    const u = await fetchCurrentUser()
+    setUser(u)
+    setApiOffline(!!u.apiOffline)
+    setReady(true)
+  }
 
   useEffect(() => {
     if (USE_MOCK) {
+      setAuthenticated(true)
       setReady(true)
       return
     }
-    fetchCurrentUser().then(u => {
-      setUser(u)
-      setApiOffline(!!u.apiOffline)
-      setReady(true)
+    requireAuth().then(ok => {
+      setAuthenticated(ok)
+      if (ok) loadUser()
+      else setReady(true)
     })
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthenticated(!!session)
+      if (session) loadUser()
+    })
+    return () => sub.subscription.unsubscribe()
   }, [])
 
   useEffect(() => {
@@ -42,20 +58,19 @@ export default function App() {
 
   const offlineBanner = apiOffline && !USE_MOCK ? (
     <div className="fixed top-0 left-0 right-0 z-[100] bg-amber-500/90 text-black text-xs text-center py-1.5 px-4">
-      API offline — start backend with <code className="font-mono">npm run backend</code>. Showing limited mode.
+      API offline — run <code className="font-mono">npm run backend</code> in GeoMind-AI-v2
     </div>
   ) : null
+
+  if (!USE_MOCK && !authenticated && (parsed.page === 'dashboard' || parsed.page === 'project')) {
+    return <LoginPage onSuccess={() => { setAuthenticated(true); loadUser(); window.location.hash = '#dashboard' }} />
+  }
 
   if (parsed.page === 'project' && parsed.projectId) {
     return (
       <>
         {offlineBanner}
-        <ProjectWorkspace
-          user={user}
-          projectId={parsed.projectId}
-          initialTab={parsed.projectTab}
-          resourceId={parsed.resourceId}
-        />
+        <ProjectWorkspace user={user} projectId={parsed.projectId} initialTab={parsed.projectTab} resourceId={parsed.resourceId} />
       </>
     )
   }
