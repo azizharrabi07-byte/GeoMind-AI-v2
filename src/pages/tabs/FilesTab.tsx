@@ -197,11 +197,18 @@ export function FilesTab({ user, projectId, project, resourceId, onNavigate }: T
                     </div>
                   )}
 
-                  {ext === 'pdf' && !previewImage && (
+                  {ext === 'pdf' && sel.download_url && (
+                    <div>
+                      <h4 className="text-xs font-semibold text-surface-500 uppercase mb-2">PDF Preview</h4>
+                      <iframe src={sel.download_url} title={sel.filename}
+                        className="w-full h-72 rounded-lg border border-white/[0.06] bg-white" />
+                    </div>
+                  )}
+
+                  {ext === 'pdf' && !sel.download_url && !previewImage && (
                     <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-8 text-center">
                       <div className="text-4xl mb-2">📄</div>
-                      <p className="text-sm text-surface-400">PDF document — survey report or legal description</p>
-                      <p className="text-xs text-surface-600 mt-1">Full PDF viewer in Phase 2</p>
+                      <p className="text-sm text-surface-400">PDF document — open or re-upload to preview</p>
                     </div>
                   )}
 

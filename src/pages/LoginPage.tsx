@@ -3,15 +3,36 @@ import { supabase } from '../lib/supabase'
 import { PRODUCT } from '../lib/product'
 
 export function LoginPage({ onSuccess }: { onSuccess: () => void }) {
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const [email, setEmail] = useState('demo@geomind.ai')
   const [password, setPassword] = useState('DemoSurvey2026!')
+  const [fullName, setFullName] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
 
-  async function handleLogin(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setMessage('')
+
+    if (mode === 'signup') {
+      const { error: err } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: fullName } },
+      })
+      setLoading(false)
+      if (err) {
+        setError(err.message)
+        return
+      }
+      setMessage('Account created. Check your email to confirm, or sign in if confirmation is disabled.')
+      setMode('signin')
+      return
+    }
+
     const { error: err } = await supabase.auth.signInWithPassword({ email, password })
     setLoading(false)
     if (err) {
@@ -28,18 +49,37 @@ export function LoginPage({ onSuccess }: { onSuccess: () => void }) {
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center font-bold">G</div>
           <div>
             <h1 className="text-xl font-bold">{PRODUCT.name}</h1>
-            <p className="text-xs text-surface-500">Sign in to your workspace</p>
+            <p className="text-xs text-surface-500">
+              {mode === 'signin' ? 'Sign in to your workspace' : 'Create your surveyor account'}
+            </p>
           </div>
         </div>
-        <form onSubmit={handleLogin} className="space-y-4">
+
+        <div className="flex gap-2 mb-4">
+          <button type="button" onClick={() => setMode('signin')}
+            className={`flex-1 py-2 rounded-lg text-xs font-medium ${mode === 'signin' ? 'bg-brand-500/20 text-brand-300' : 'bg-white/[0.04] text-surface-500'}`}>
+            Sign In
+          </button>
+          <button type="button" onClick={() => setMode('signup')}
+            className={`flex-1 py-2 rounded-lg text-xs font-medium ${mode === 'signup' ? 'bg-brand-500/20 text-brand-300' : 'bg-white/[0.04] text-surface-500'}`}>
+            Sign Up
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {mode === 'signup' && (
+            <input type="text" value={fullName} onChange={e => setFullName(e.target.value)}
+              placeholder="Full Name" className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500/40" />
+          )}
           <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
             placeholder="Email" className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500/40" />
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} required
-            placeholder="Password" className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500/40" />
+          <input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={8}
+            placeholder="Password (min 8 chars)" className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500/40" />
           {error && <p className="text-xs text-rose-400">{error}</p>}
+          {message && <p className="text-xs text-emerald-400">{message}</p>}
           <button type="submit" disabled={loading}
             className="w-full py-3 bg-gradient-to-r from-brand-500 to-brand-700 rounded-xl font-semibold disabled:opacity-50">
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? 'Please wait...' : mode === 'signin' ? 'Sign In' : 'Create Account'}
           </button>
         </form>
         <p className="text-[10px] text-surface-600 mt-4 text-center">

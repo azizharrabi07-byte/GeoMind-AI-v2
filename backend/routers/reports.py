@@ -7,6 +7,7 @@ from typing import Optional
 from routers.auth import get_current_user
 from database import get_supabase
 from services.report_service import generate_report_pdf
+from services.email_service import send_report_email
 
 router = APIRouter()
 
@@ -17,6 +18,11 @@ class ReportGenerateRequest(BaseModel):
     report_type: str = "boundary"  # boundary, topographic, alta, construction, control
     title: str = ""
     file_ids: list[str] = []
+
+
+class ReportEmailRequest(BaseModel):
+    to_email: str
+    message: str = ""
 
 
 @router.get("/templates")
@@ -131,6 +137,47 @@ async def generate_report(req: ReportGenerateRequest, user: dict = Depends(get_c
         "report": result.data[0] if result.data else None,
         "download_url": url,
     }
+
+
+@router.post("/{report_id}/email")
+async def email_report(report_id: str, req: ReportEmailRequest, user: dict = Depends(get_current_user)):
+    """Email a generated report (SMTP if configured, otherwise returns mailto link)."""
+    supabase = get_supabase()
+    result = supabase.table("generated_reports") \
+        .select("*") \
+        .eq("id", report_id) \
+        .eq("user_id", user["id"]) \
+        .execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Report not found")
+    report = result.data[0]
+
+    pdf_bytes = None
+    if report.get("storage_path"):
+        try:
+            pdf_bytes = supabase.storage.from_("reports").download(report["storage_path"])
+        except Exception:
+            pdf_bytes = None
+
+    body = req.message or f"Please find attached the survey report: {report.get('title', 'Report')}"
+    outcome = send_report_email(
+        to_email=req.to_email,
+        subject=f"GeoMind Report — {report.get('title', 'Survey Report')}",
+        body=body,
+        pdf_bytes=pdf_bytes,
+        filename=f"{report.get('report_type', 'report')}_report.pdf",
+    )
+
+    if report.get("project_id"):
+        supabase.table("activities").insert({
+            "user_id": user["id"],
+            "project_id": report["project_id"],
+            "action": "general",
+            "description": f'Emailed report "{report.get("title", "")}" to {req.to_email}',
+            "metadata": {"report_id": report_id, "navigate_tab": "reports"},
+        }).execute()
+
+    return outcome
 
 
 @router.delete("/{report_id}")

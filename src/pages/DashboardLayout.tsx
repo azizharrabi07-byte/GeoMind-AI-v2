@@ -1,14 +1,19 @@
 import { useState } from 'react'
 import { OverviewTab } from './tabs/OverviewTab'
 import { ProjectsTab } from './tabs/ProjectsTab'
+import { SearchTab } from './tabs/SearchTab'
+import { AnalyticsTab } from './tabs/AnalyticsTab'
 import { SettingsTab } from './tabs/SettingsTab'
 import { PRODUCT } from '../lib/product'
+import { signOut } from '../lib/auth'
 
-type TabId = 'overview' | 'projects' | 'settings'
+type TabId = 'overview' | 'projects' | 'search' | 'analytics' | 'settings'
 
 const TABS: { id: TabId; label: string; icon: string }[] = [
   { id: 'overview', label: 'Workspace', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
   { id: 'projects', label: 'Projects', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
+  { id: 'search', label: 'Search', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' },
+  { id: 'analytics', label: 'Analytics', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
   { id: 'settings', label: 'Settings', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z' },
 ]
 
@@ -20,6 +25,8 @@ export function DashboardLayout({ user }: { user: any }) {
     switch (activeTab) {
       case 'overview': return <OverviewTab user={user} onNavigate={t => setActiveTab(t as TabId)} />
       case 'projects': return <ProjectsTab user={user} />
+      case 'search': return <SearchTab user={user} />
+      case 'analytics': return <AnalyticsTab user={user} />
       case 'settings': return <SettingsTab user={user} />
     }
   }
@@ -77,7 +84,8 @@ export function DashboardLayout({ user }: { user: any }) {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-xs font-bold">
               {(user.email || 'U').slice(0, 2).toUpperCase()}
             </div>
-            <button onClick={() => { window.location.hash = '#home' }} className="text-xs text-surface-500 hover:text-white">Sign Out</button>
+            <button onClick={async () => { await signOut(); window.location.hash = '#home' }}
+              className="text-xs text-surface-500 hover:text-white">Sign Out</button>
           </div>
         </header>
 

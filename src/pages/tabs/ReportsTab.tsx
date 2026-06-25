@@ -19,6 +19,8 @@ export function ReportsTab({ user, projectId, project, resourceId }: TabProps) {
   const [viewReport, setViewReport] = useState<any | null>(null)
   const [selectedFileIds, setSelectedFileIds] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
+  const [emailing, setEmailing] = useState(false)
+  const [emailTo, setEmailTo] = useState('')
 
   async function load() {
     const [r, f] = await Promise.all([
@@ -78,6 +80,23 @@ export function ReportsTab({ user, projectId, project, resourceId }: TabProps) {
     setViewReport(full || r)
   }
 
+  async function emailReport(r: any) {
+    const to = emailTo.trim() || prompt('Send report to email:') || ''
+    if (!to) return
+    setEmailing(true)
+    try {
+      const result = await db.reports.email(r.id, to)
+      if (result.sent) {
+        alert(`Report emailed to ${to}`)
+      } else if (result.mailto_url) {
+        window.open(result.mailto_url, '_blank')
+      }
+    } catch (e) {
+      alert('Email failed: ' + (e as Error).message)
+    }
+    setEmailing(false)
+  }
+
   async function deleteReport(id: string) {
     if (!confirm('Delete this report?')) return
     await db.reports.delete(id)
@@ -96,9 +115,13 @@ export function ReportsTab({ user, projectId, project, resourceId }: TabProps) {
             {project ? `Reports for ${project.name}.` : 'Project summaries and client deliverables.'}
           </p>
         </div>
-        <span className="text-xs text-surface-500 px-3 py-1 rounded-full bg-white/[0.04]">
-          {files.length} source file{files.length !== 1 ? 's' : ''} available
-        </span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <input value={emailTo} onChange={e => setEmailTo(e.target.value)} placeholder="Client email for reports"
+            className="bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5 text-xs outline-none w-48" />
+          <span className="text-xs text-surface-500 px-3 py-1 rounded-full bg-white/[0.04]">
+            {files.length} source file{files.length !== 1 ? 's' : ''}
+          </span>
+        </div>
       </div>
 
       {files.length > 0 && (
@@ -160,6 +183,8 @@ export function ReportsTab({ user, projectId, project, resourceId }: TabProps) {
                 </div>
                 <div className="flex gap-2 flex-shrink-0">
                   <button onClick={() => openReport(r)} className="px-3 py-1.5 text-xs bg-brand-500/10 text-brand-300 rounded-lg">View</button>
+                  <button onClick={() => emailReport(r)} disabled={emailing}
+                    className="px-3 py-1.5 text-xs bg-violet-500/10 text-violet-300 rounded-lg disabled:opacity-50">Email</button>
                   <button onClick={() => downloadReportContent(r.title, r.content || '')}
                     disabled={!r.content}
                     className="px-3 py-1.5 text-xs bg-white/[0.04] rounded-lg disabled:opacity-40">Download</button>
@@ -184,7 +209,17 @@ export function ReportsTab({ user, projectId, project, resourceId }: TabProps) {
             <pre className="flex-1 overflow-y-auto p-6 text-xs text-surface-300 whitespace-pre-wrap font-mono leading-relaxed">
               {viewReport.content || 'No content stored for this report.'}
             </pre>
-            <div className="px-6 py-4 border-t border-white/[0.04] flex gap-2">
+            <div className="px-6 py-4 border-t border-white/[0.04] flex gap-2 flex-wrap">
+              {viewReport.download_url && (
+                <a href={viewReport.download_url} target="_blank" rel="noopener noreferrer"
+                  className="flex-1 py-2.5 bg-emerald-500/20 text-emerald-300 rounded-xl text-sm font-semibold text-center">
+                  Open PDF
+                </a>
+              )}
+              <button onClick={() => emailReport(viewReport)} disabled={emailing}
+                className="flex-1 py-2.5 bg-violet-500/20 text-violet-300 rounded-xl text-sm font-semibold disabled:opacity-50">
+                Email Report
+              </button>
               <button onClick={() => downloadReportContent(viewReport.title, viewReport.content || '')}
                 className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-400 rounded-xl text-sm font-semibold">
                 Download .txt

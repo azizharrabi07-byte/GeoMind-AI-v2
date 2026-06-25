@@ -174,6 +174,12 @@ export const db = {
     delete: (id: string) => USE_MOCK
       ? Promise.resolve(mockReports.delete(id))
       : apiFetch(`/api/reports/${id}`, { method: 'DELETE' }),
+    email: (id: string, toEmail: string, message?: string) => USE_MOCK
+      ? Promise.resolve({ sent: false, method: 'mailto', mailto_url: `mailto:${toEmail}` })
+      : apiFetch(`/api/reports/${id}/email`, {
+          method: 'POST',
+          body: JSON.stringify({ to_email: toEmail, message: message || '' }),
+        }),
   },
 
   mapAi: {
@@ -186,5 +192,67 @@ export const db = {
     }) => USE_MOCK
       ? Promise.resolve({ reply: 'Map AI requires API mode (VITE_USE_MOCK=false)' })
       : apiFetch('/api/map-ai/', { method: 'POST', body: JSON.stringify(data) }),
+  },
+
+  search: {
+    query: (q: string, projectId?: string) => USE_MOCK
+      ? Promise.resolve({
+          query: q,
+          projects: mockProjects.list('').filter((p: any) =>
+            JSON.stringify(p).toLowerCase().includes(q.toLowerCase())
+          ),
+          files: mockFiles.list('').filter((f: any) =>
+            (f.filename || '').toLowerCase().includes(q.toLowerCase())
+          ),
+          reports: [],
+          activities: [],
+          total: 0,
+        })
+      : apiFetch(`/api/search/?q=${encodeURIComponent(q)}${projectId ? `&project_id=${projectId}` : ''}`),
+  },
+
+  analytics: {
+    get: (projectId?: string) => USE_MOCK
+      ? Promise.resolve({
+          projects: mockProjects.count(''),
+          files: mockFiles.count(''),
+          reports: 0,
+          gis_features: 0,
+          activities: 0,
+          analyzed_files: 0,
+          total_storage_mb: 0,
+          file_types: {},
+          project_status: {},
+        })
+      : apiFetch(projectId ? `/api/analytics/?project_id=${projectId}` : '/api/analytics/'),
+  },
+
+  preferences: {
+    get: () => USE_MOCK
+      ? Promise.resolve({
+          auto_analyze_uploads: true,
+          proactive_flagging: true,
+          report_suggestions: false,
+          notification_email: '',
+        })
+      : apiFetch('/api/preferences/'),
+    update: (data: any) => USE_MOCK
+      ? Promise.resolve(data)
+      : apiFetch('/api/preferences/', { method: 'PUT', body: JSON.stringify(data) }),
+  },
+
+  integrations: {
+    list: () => USE_MOCK
+      ? Promise.resolve([])
+      : apiFetch('/api/integrations/'),
+    connect: (data: any) => USE_MOCK
+      ? Promise.resolve({ ok: true })
+      : apiFetch('/api/integrations/', { method: 'POST', body: JSON.stringify(data) }),
+    disconnect: (id: string) => USE_MOCK
+      ? Promise.resolve({ ok: true })
+      : apiFetch(`/api/integrations/${id}`, { method: 'DELETE' }),
+    sync: (provider: string) => USE_MOCK
+      ? Promise.resolve({ ok: true, message: `Sync initiated for ${provider}` })
+      : apiFetch(`/api/integrations/${provider}/sync`, { method: 'POST' }),
   },
 }
