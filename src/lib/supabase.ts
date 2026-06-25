@@ -11,8 +11,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 })
 
-// Dev: empty string → Vite proxies /api to localhost:3001 (same origin, no CORS).
-// Prod: set VITE_API_BASE_URL to your deployed API.
-export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ??
-  (import.meta.env.DEV ? '' : 'http://localhost:3001')
+// Dev always uses Vite proxy (/api → localhost:3001). Prod uses VITE_API_BASE_URL.
+export const API_BASE_URL = import.meta.env.DEV
+  ? ''
+  : (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001')

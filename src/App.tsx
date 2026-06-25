@@ -4,7 +4,7 @@ import { DashboardLayout } from './pages/DashboardLayout'
 import { ProjectWorkspace } from './pages/ProjectWorkspace'
 import { LoginPage } from './pages/LoginPage'
 import { parseRoute } from './lib/routes'
-import { fetchCurrentUser, FALLBACK_USER, requireAuth } from './lib/auth'
+import { fetchCurrentUser, FALLBACK_USER, requireAuth, isApiReachable } from './lib/auth'
 import { USE_MOCK } from './lib/data'
 import { supabase } from './lib/supabase'
 
@@ -45,6 +45,14 @@ export default function App() {
     window.addEventListener('hashchange', onHashChange)
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
+
+  useEffect(() => {
+    if (!apiOffline || USE_MOCK) return
+    const retry = setInterval(async () => {
+      if (await isApiReachable()) loadUser()
+    }, 5000)
+    return () => clearInterval(retry)
+  }, [apiOffline])
 
   const parsed = parseRoute(route)
 

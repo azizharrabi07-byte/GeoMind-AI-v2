@@ -10,7 +10,7 @@ export const FALLBACK_USER = {
   user_metadata: { full_name: 'Demo Surveyor' },
 }
 
-const API_TIMEOUT_MS = 4000
+const API_TIMEOUT_MS = 8000
 
 async function fetchWithTimeout(url: string, options: RequestInit = {}) {
   const controller = new AbortController()
@@ -30,13 +30,21 @@ export async function getAccessToken(): Promise<string | null> {
 export async function fetchCurrentUser(): Promise<typeof FALLBACK_USER & { apiOffline?: boolean }> {
   if (USE_MOCK) return FALLBACK_USER
 
+  try {
+    const health = await fetchWithTimeout(`${API_BASE_URL}/api/health`)
+    if (!health.ok) return { ...FALLBACK_USER, apiOffline: true }
+  } catch {
+    return { ...FALLBACK_USER, apiOffline: true }
+  }
+
   const token = await getAccessToken()
   const headers: Record<string, string> = {}
   if (token) headers['Authorization'] = `Bearer ${token}`
 
   try {
     const res = await fetchWithTimeout(`${API_BASE_URL}/api/auth/me`, { headers })
-    if (!res.ok) throw new Error(`auth ${res.status}`)
+    if (res.status === 401) return FALLBACK_USER
+    if (!res.ok) return { ...FALLBACK_USER, apiOffline: true }
     const profile = await res.json()
     return {
       id: profile.id,

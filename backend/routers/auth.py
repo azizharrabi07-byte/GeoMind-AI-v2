@@ -45,14 +45,17 @@ class ProfileUpdate(BaseModel):
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Dependency: extract current user from JWT token."""
-    if os.getenv("ALLOW_DEV_AUTH", "false").lower() == "true" and not credentials:
-        return _dev_user()
+    dev_mode = os.getenv("ALLOW_DEV_AUTH", "false").lower() == "true"
     if not credentials:
+        if dev_mode:
+            return _dev_user()
         raise HTTPException(status_code=401, detail="Not authenticated")
     user = get_user_from_token(credentials.credentials)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    return user
+    if user:
+        return user
+    if dev_mode:
+        return _dev_user()
+    raise HTTPException(status_code=401, detail="Invalid token")
 
 
 @router.post("/signup")
