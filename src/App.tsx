@@ -58,7 +58,8 @@ export default function App() {
 
   const offlineBanner = apiOffline && !USE_MOCK ? (
     <div className="fixed top-0 left-0 right-0 z-[100] bg-amber-500/90 text-black text-xs text-center py-1.5 px-4">
-      API offline — run <code className="font-mono">npm run backend</code> in GeoMind-AI-v2
+      Backend offline — open a terminal in GeoMind-AI-v2 and run{' '}
+      <code className="font-mono">npm start</code> (starts API + UI together)
     </div>
   ) : null
 
