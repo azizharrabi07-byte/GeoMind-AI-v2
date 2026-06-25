@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GeoMind AI — Feature Hierarchy</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0f172a;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #e2e8f0;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    .header {
+      text-align: center;
+      padding: 40px 20px 20px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+    }
+    .header h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #818cf8, #6366f1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .header p {
+      color: #94a3b8;
+      margin-top: 8px;
+      font-size: 0.95rem;
+    }
+    .hyadogram {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px 80px;
+      gap: 0;
+    }
+    .root-node {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: white;
+      padding: 16px 40px;
+      border-radius: 16px;
+      font-size: 1.3rem;
+      font-weight: 700;
+      box-shadow: 0 8px 32px rgba(99, 102, 241, 0.3);
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .root-node:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(99, 102, 241, 0.4);
+    }
+    .connector-down {
+      width: 2px;
+      height: 30px;
+      background: linear-gradient(to bottom, #6366f1, #475569);
+    }
+    .branch-container {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+      position: relative;
+      padding-top: 10px;
+    }
+    .branch-container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 10%;
+      right: 10%;
+      height: 2px;
+      background: linear-gradient(to right, transparent, #475569, transparent);
+    }
+    .branch {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 140px;
+    }
+    .branch-header {
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: white;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      white-space: nowrap;
+      margin-top: 10px;
+    }
+    .branch-header:hover {
+      transform: translateY(-2px);
+    }
+    .branch-connector {
+      width: 2px;
+      height: 20px;
+      background: #475569;
+    }
+    .sub-items {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: 100%;
+      padding: 0 4px;
+    }
+    .sub-item {
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(148, 163, 184, 0.1);
+      color: #cbd5e1;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+      position: relative;
+    }
+    .sub-item:hover {
+      background: rgba(99, 102, 241, 0.1);
+      border-color: rgba(99, 102, 241, 0.3);
+      transform: translateX(3px);
+    }
+    .sub-item .status {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+    .status-done { background: #22c55e; }
+    .status-wip { background: #eab308; }
+    .status-plan { background: #64748b; }
+    .status-future { background: #3b82f6; }
+    .legend {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      padding: 20px;
+      flex-wrap: wrap;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      color: #94a3b8;
+    }
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    .footer {
+      text-align: center;
+      padding: 30px;
+      color: #475569;
+      font-size: 0.8rem;
+      border-top: 1px solid rgba(148, 163, 184, 0.08);
+    }
+    @media (max-width: 768px) {
+      .branch { min-width: 100px; }
+      .branch-header { font-size: 0.8rem; padding: 10px 14px; white-space: normal; }
+      .sub-item { font-size: 0.7rem; padding: 6px 10px; }
+      .root-node { font-size: 1rem; padding: 12px 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🏗️ GeoMind AI</h1>
+    <p>Feature Hierarchy — Interactive Hyadogram</p>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot status-done"></div> Complete</div>
+    <div class="legend-item"><div class="legend-dot status-wip"></div> In Progress</div>
+    <div class="legend-item"><div class="legend-dot status-plan"></div> Planned</div>
+    <div class="legend-item"><div class="legend-dot status-future"></div> Future</div>
+  </div>
+
+  <div class="hyadogram">
+    <div class="root-node">🎯 GeoMind AI Platform</div>
+    <div class="connector-down"></div>
+
+    <div class="branch-container">
+      <!-- Branch 1: Auth -->
+      <div class="branch">
+        <div class="branch-header" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">🔐 Auth & Users</div>
+        <div class="branch-connector"></div>
+        <div class="sub-items">
+          <div class="sub-item">Email/Password Login<span class="status status-wip"></span></div>
+          <div class="sub-item">Google OAuth<span class="status status-wip"></span></div>
+          <div class="sub-item">Profile Management<span class="status status-plan"></span></div>
+          <div class="sub-item">Password Reset<span class="status status-plan"></span></div>
+          <div class="sub-item">User Preferences<span class="status status-plan"></span></div>
+          <div class="sub-item">Session Management<span class="status status-wip"></span></div>
+        </div>
+      </div>
+
+      <!-- Branch 2: Projects -->
+      <div class="branch">
+        <div class="branch-header" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">📁 Projects</div>
+        <div class="branch-connector"></div>
+        <div class="sub-items">
+          <div class="sub-item">Create Project<span class="status status-plan"></span></div>
+          <div class="sub-item">Edit Project<span class="status status-plan"></span></div>
+          <div class="sub-item">Delete Project<span class="status status-plan"></span></div>
+          <div class="sub-item">Status Tracking<span class="status status-plan"></span></div>
+          <div class="sub-item">Client Info<span class="status status-plan"></span></div>
+          <div class="sub-item">Coordinate System<span class="status status-plan"></span></div>
+          <div class="sub-item">Due Date<span class="status status-plan"></span></div>
+        </div>
+      </div>
+
+      <!-- Branch 3: Files -->
+      <div class="branch">
+        <div class="branch-header" style="background: linear-gradient(135deg, #f59e0b, #d97706);">📄 Files</div>
+        <div class="branch-connector"></div>
+        <div class="sub-items">
+          <div class="sub-item">Drag & Drop Upload<span class="status status-wip"></span></div>
+          <div class="sub-item">Multiple File Upload<span class="status status-wip"></span></div>
+          <div class="sub-item">PDF Analysis<span class="status status-wip"></span></div>
+          <div class="sub-item">CSV/XLSX Analysis<span class="status status-wip"></span></div>
+          <div class="sub-item">DXF Analysis<span class="status status-wip"></span></div>
+          <div class="sub-item">GeoJSON Import<span class="status status-wip"></span></div>
+          <div class="sub-item">Image OCR<span class="status status-wip"></span></div>
+          <div class="sub-item">AI Summary<span class="status status-wip"></span></div>
+          <div class="sub-item">Anomaly Detection<span class="status status-wip"></span></div>
+          <div class="sub-item">Knowledge Graph<span class="status status-wip"></span></div>
+          <div class="sub-item">File Preview<span class="status status-plan"></span></div>
+          <div class="sub-item">Persistent Storage<span class="status status-plan"></span></div>
+        </div>
+      </div>
+
+      <!-- Branch 4: GIS Map -->
+      <div class="branch">
+        <div class="branch-header" style="background: linear-gradient(135deg, #22c55e, #16a34a);">🗺️ GIS Map</div>
+        <div class="branch-connector"></div>
+        <div class="sub-items">
+          <div class="sub-item">Interactive Map View<span class="status status-plan"></span></div>
+          <div class="sub-item">Street / Satellite / Topo<span class="status status-plan"></span></div>
+          <div class="sub-item">Add Points<span class="status status-plan"></span></div>
+          <div class="sub-item">Draw Lines<span class="status status-plan"></span></div>
+          <div class="sub-item">Draw Polygons<span class="status status-plan"></span></div>
+          <div class="sub-item">Layer Management<span class="status status-plan"></span></div>
+          <div class="sub-item">AI Map Commands<span class="status status-plan"></span></div>
+          <div class="sub-item">Coordinate Display<span class="status status-future"></span></div>
+          <div class="sub-item">Distance Measurement<span class="status status-future"></span></div>
+          <div class="sub-item">Feature Persistence<span class="status status-plan"></span></div>
+        </div>
+      </div>
+
+      <!-- Branch 5: AI Chat -->
+      <div class="branch">
+        <div class="branch-header" style="background: linear-gradient(135deg, #ec4899, #db2777);">🤖 AI Chat</div>
+        <div class="branch-connector"></div>
+        <div class="sub-items">
+          <div class="sub-item">Survey Knowledge Base<span class="status status-wip"></span></div>
+          <div class="sub-item">File Context QA<span class="status status-wip"></span></div>
+          <div class="sub-item">Map Awareness<span class="status status-wip"></span></div>
+          <div class="sub-item">Session History<span class="status status-wip"></span></div>
+          <div class="sub-item">Multi-Session Support<span class="status status-plan"></span></div>
+          <div class="sub-item">Command Execution<span class="status status-wip"></span></div>
+          <div class="sub-item">Anomaly Explanation<span class="status status-wip"></span></div>
+        </div>
+      </div>
+
+      <!-- Branch 6: Reports -->
+      <div class="branch">
+        <div class="branch-header" style="background: linear-gradient(135deg, #ef4444, #dc2626);">📊 Reports</div>
+        <div class="branch-connector"></div>
+        <div class="sub-items">
+          <div class="sub-item">Boundary Report<span class="status status-plan"></span></div>
+          <div class="sub-item">Topographic Report<span class="status status-plan"></span></div>
+          <div class="sub-item">ALTA/NSPS Report<span class="status status-plan"></span></div>
+          <div class="sub-item">Construction Staking<span class="status status-plan"></span></div>
+          <div class="sub-item">PDF Export<span class="status status-plan"></span></div>
+          <div class="sub-item">Auto-Populated Data<span class="status status-plan"></span></div>
+          <div class="sub-item">Report Templates<span class="status status-plan"></span></div>
+        </div>
+      </div>
+
+      <!-- Branch 7: Analytics -->
+      <div class="branch">
+        <div class="branch-header" style="background: linear-gradient(135deg, #14b8a6, #0d9488);">📈 Analytics</div>
+        <div class="branch-connector"></div>
+        <div class="sub-items">
+          <div class="sub-item">Project Stats<span class="status status-plan"></span></div>
+          <div class="sub-item">File Stats<span class="status status-plan"></span></div>
+          <div class="sub-item">Upload Trends<span class="status status-plan"></span></div>
+          <div class="sub-item">Point Classification<span class="status status-plan"></span></div>
+          <div class="sub-item">Activity Timeline<span class="status status-plan"></span></div>
+          <div class="sub-item">AI Insights Summary<span class="status status-plan"></span></div>
+        </div>
+      </div>
+
+      <!-- Branch 8: Integrations -->
+      <div class="branch">
+        <div class="branch-header" style="background: linear-gradient(135deg, #06b6d4, #0891b2);">🔌 Integrations</div>
+        <div class="branch-connector"></div>
+        <div class="sub-items">
+          <div class="sub-item">Google Drive Connector<span class="status status-future"></span></div>
+          <div class="sub-item">OneDrive Connector<span class="status status-future"></span></div>
+          <div class="sub-item">DXF/DWG Import<span class="status status-wip"></span></div>
+          <div class="sub-item">GeoJSON/Shapefile<span class="status status-wip"></span></div>
+          <div class="sub-item">AutoCAD Export<span class="status status-future"></span></div>
+          <div class="sub-item">QGIS Sync<span class="status status-future"></span></div>
+        </div>
+      </div>
+
+      <!-- Branch 9: Settings -->
+      <div class="branch">
+        <div class="branch-header" style="background: linear-gradient(135deg, #64748b, #475569);">⚙️ Settings</div>
+        <div class="branch-connector"></div>
+        <div class="sub-items">
+          <div class="sub-item">Profile Settings<span class="status status-wip"></span></div>
+          <div class="sub-item">AI Preferences<span class="status status-wip"></span></div>
+          <div class="sub-item">Default CRS<span class="status status-plan"></span></div>
+          <div class="sub-item">Report Template<span class="status status-plan"></span></div>
+          <div class="sub-item">Integration Config<span class="status status-future"></span></div>
+          <div class="sub-item">Account Management<span class="status status-plan"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    GeoMind AI v2.0 — Architecture & Feature Hierarchy Diagram<br>
+    Generated: June 24, 2026
+  </div>
+</body>
+</html>
