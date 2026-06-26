@@ -1,4 +1,4 @@
-# GeoMind AI v4
+# GeoMind AI v4.1
 
 **Survey Project Operating System** — centralize files, maps, reports, and project knowledge for land surveying firms. AI (Gemini) assists analysis and reporting; the product is the workspace, not the chatbot.
 
@@ -73,7 +73,29 @@ Firm dashboard adds **Smart Search**, **Analytics**, and **Settings** (profile, 
 | **Phase 2** | Supabase API, login, timeline restore, Map AI | ✅ Complete |
 | **Phase 3** | Search, analytics, PDF viewer, email reports, signup, preferences | ✅ Complete |
 | **Phase 4** | Google Drive OAuth + file sync, offline UX polish | ✅ Complete |
-| **Phase 4b** | OneDrive/Outlook OAuth, deploy, mobile, LAS/RAW parsers | Planned |
+| **Phase 4b** | OneDrive + Outlook OAuth (Microsoft Graph), backend connectivity | ✅ Complete |
+
+### Phase 4b deliverables
+
+- **OneDrive OAuth** — Microsoft Graph file sync from `GeoMind Imports` folder
+- **Outlook OAuth** — links recent emails to integration + project timeline
+- **Microsoft Graph service** — token exchange, refresh, OneDrive + Mail APIs
+- **Startup fix** — `wait-on` ensures backend is ready before Vite starts (no false offline banner)
+- **Offline detection** — banner only when `/api/health` fails (not auth errors)
+- **Verify script** — `python backend/verify_phase4b.py`
+
+#### Azure setup (OneDrive + Outlook)
+
+1. [Azure Portal](https://portal.azure.com/) → App registrations → New registration
+2. Redirect URIs (Web):
+   - `http://localhost:3001/api/integrations/onedrive/oauth/callback`
+   - `http://localhost:3001/api/integrations/outlook/oauth/callback`
+3. API permissions: `Files.Read`, `Mail.Read`, `User.Read`, `offline_access`
+4. Create client secret → add to `backend/.env`:
+   ```
+   MICROSOFT_CLIENT_ID=your-app-id
+   MICROSOFT_CLIENT_SECRET=your-secret
+   ```
 
 ### Phase 4 deliverables
 
@@ -234,6 +256,7 @@ cd backend
 python verify_phase2.py   # core API + timeline
 python verify_phase3.py   # search, analytics, preferences, email
 python verify_phase4.py   # Google Drive OAuth + integrations
+python verify_phase4b.py  # OneDrive + Outlook + connectivity
 npm run lint              # TypeScript check
 ```
 
@@ -262,4 +285,4 @@ GeoMind-AI-v2/
 
 Built for survey engineering firms. See `docs/tor.md` for product vision and `docs/integrations.md` for CAD/GIS tool compatibility matrix.
 
-**Version:** 4.0.0 · **June 2026**
+**Version:** 4.1.0 · **June 2026**

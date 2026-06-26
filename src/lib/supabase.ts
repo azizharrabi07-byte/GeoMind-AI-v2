@@ -11,7 +11,18 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 })
 
-// Dev always uses Vite proxy (/api → localhost:3001). Prod uses VITE_API_BASE_URL.
-export const API_BASE_URL = import.meta.env.DEV
-  ? ''
-  : (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001')
+function resolveApiBaseUrl(): string {
+  const configured = (import.meta.env.VITE_API_BASE_URL || '').trim()
+  if (configured) return configured.replace(/\/$/, '')
+
+  // Dev / preview: use same-origin so Vite proxy forwards /api → backend:3001
+  if (import.meta.env.DEV || import.meta.env.MODE === 'preview') return ''
+
+  // Production build served without proxy: hit backend on same host
+  if (typeof window !== 'undefined') {
+    return `http://${window.location.hostname}:3001`
+  }
+  return 'http://localhost:3001'
+}
+
+export const API_BASE_URL = resolveApiBaseUrl()

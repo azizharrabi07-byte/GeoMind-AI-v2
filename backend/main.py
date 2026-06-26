@@ -22,7 +22,7 @@ logger = logging.getLogger("geomind")
 app = FastAPI(
     title="GeoMind AI API",
     description="Backend for the Survey Engineering Intelligence Platform",
-    version="4.0.0",
+    version="4.1.0",
 )
 
 # CORS — restrict in production
@@ -49,17 +49,18 @@ app.include_router(analytics.router, prefix="/api/analytics", tags=["Analytics"]
 app.include_router(preferences.router, prefix="/api/preferences", tags=["Preferences"])
 
 
-@app.get("/api/health")
+@app.api_route("/api/health", methods=["GET", "HEAD"])
 async def health_check():
     """Health check endpoint."""
     return {
         "status": "ok",
-        "version": "4.0.0",
+        "version": "4.1.0",
         "service": "GeoMind AI",
-        "phase": 4,
-        "google_drive_oauth": bool(
-            settings.google_client_id and settings.google_client_secret
-        ),
+        "phase": "4b",
+        "google_drive_oauth": bool(settings.google_client_id and settings.google_client_secret),
+        "microsoft_oauth": bool(settings.microsoft_client_id and settings.microsoft_client_secret),
+        "frontend_url": settings.app_url,
+        "backend_url": f"http://127.0.0.1:{os.getenv('PORT', '3001')}",
     }
 
 

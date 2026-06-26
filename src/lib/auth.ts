@@ -10,7 +10,7 @@ export const FALLBACK_USER = {
   user_metadata: { full_name: 'Demo Surveyor' },
 }
 
-const API_TIMEOUT_MS = 8000
+const API_TIMEOUT_MS = 12000
 
 async function fetchWithTimeout(url: string, options: RequestInit = {}) {
   const controller = new AbortController()
@@ -27,15 +27,22 @@ export async function getAccessToken(): Promise<string | null> {
   return data.session?.access_token ?? null
 }
 
+/** True only when the API process is unreachable (health check fails). */
+export async function isApiReachable(): Promise<boolean> {
+  if (USE_MOCK) return true
+  try {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/api/health`)
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
 export async function fetchCurrentUser(): Promise<typeof FALLBACK_USER & { apiOffline?: boolean }> {
   if (USE_MOCK) return FALLBACK_USER
 
-  try {
-    const health = await fetchWithTimeout(`${API_BASE_URL}/api/health`)
-    if (!health.ok) return { ...FALLBACK_USER, apiOffline: true }
-  } catch {
-    return { ...FALLBACK_USER, apiOffline: true }
-  }
+  const online = await isApiReachable()
+  if (!online) return { ...FALLBACK_USER, apiOffline: true }
 
   const token = await getAccessToken()
   const headers: Record<string, string> = {}
@@ -44,7 +51,7 @@ export async function fetchCurrentUser(): Promise<typeof FALLBACK_USER & { apiOf
   try {
     const res = await fetchWithTimeout(`${API_BASE_URL}/api/auth/me`, { headers })
     if (res.status === 401) return FALLBACK_USER
-    if (!res.ok) return { ...FALLBACK_USER, apiOffline: true }
+    if (!res.ok) return FALLBACK_USER
     const profile = await res.json()
     return {
       id: profile.id,
@@ -52,17 +59,8 @@ export async function fetchCurrentUser(): Promise<typeof FALLBACK_USER & { apiOf
       user_metadata: { full_name: profile.full_name || 'Demo Surveyor' },
     }
   } catch {
-    return { ...FALLBACK_USER, apiOffline: true }
-  }
-}
-
-export async function isApiReachable(): Promise<boolean> {
-  if (USE_MOCK) return true
-  try {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/api/health`)
-    return res.ok
-  } catch {
-    return false
+    // API is up (health passed) — auth/profile fetch failed; don't show offline banner
+    return FALLBACK_USER
   }
 }
 

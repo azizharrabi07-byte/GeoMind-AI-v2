@@ -2,10 +2,16 @@ import { useState, useEffect } from 'react'
 import { db } from '../../lib/data'
 
 const INTEGRATION_PROVIDERS = [
-  { id: 'google_drive', label: 'Google Drive', desc: 'OAuth sync from a Drive folder', icon: '📁', oauth: true },
-  { id: 'onedrive', label: 'OneDrive', desc: 'Enterprise document sync (Phase 4b)', icon: '☁️', oauth: false },
-  { id: 'outlook', label: 'Outlook', desc: 'Link client emails (Phase 4b)', icon: '📧', oauth: false },
+  { id: 'google_drive', label: 'Google Drive', desc: 'OAuth sync from a Drive folder', icon: '📁', syncLabel: 'Sync files' },
+  { id: 'onedrive', label: 'OneDrive', desc: 'OAuth sync from OneDrive folder', icon: '☁️', syncLabel: 'Sync files' },
+  { id: 'outlook', label: 'Outlook', desc: 'Link recent client emails to timeline', icon: '📧', syncLabel: 'Sync mail' },
 ]
+
+const LABELS: Record<string, string> = {
+  google_drive: 'Google Drive',
+  onedrive: 'OneDrive',
+  outlook: 'Outlook',
+}
 
 function parseDashboardParams() {
   const hash = window.location.hash.replace(/^#/, '')
@@ -46,14 +52,20 @@ export function SettingsTab({ user }: { user: any }) {
     const params = parseDashboardParams()
     const integration = params.get('integration')
     const status = params.get('status')
-    if (integration === 'google_drive' && status === 'connected') {
-      setToast('Google Drive connected successfully')
+    const detail = params.get('detail')
+    if (!integration || !status) return
+
+    if (status === 'connected') {
+      setToast(`${LABELS[integration] || integration} connected successfully`)
       db.integrations.list().then(ints => setIntegrations(ints || []))
-      window.location.hash = '#dashboard?tab=settings'
-    } else if (integration === 'google_drive' && status === 'error') {
-      setToast('Google Drive connection failed — check OAuth credentials')
-      window.location.hash = '#dashboard?tab=settings'
+    } else if (status === 'error') {
+      setToast(
+        detail
+          ? `${LABELS[integration] || integration} failed: ${detail}`
+          : `${LABELS[integration] || integration} connection failed — check OAuth credentials`
+      )
     }
+    window.location.hash = '#dashboard?tab=settings'
   }, [])
 
   async function save() {
@@ -79,32 +91,30 @@ export function SettingsTab({ user }: { user: any }) {
     setTimeout(() => setSaved(false), 2000)
   }
 
-  async function toggleIntegration(provider: string, oauth: boolean) {
+  async function connectProvider(provider: string) {
+    const result = await db.integrations.oauthUrl(provider)
+    if (!result.configured || !result.url) {
+      setToast(result.message || `OAuth not configured for ${LABELS[provider]}`)
+      return
+    }
+    window.location.href = result.url
+  }
+
+  async function toggleIntegration(provider: string) {
     const existing = integrations.find(i => i.provider === provider)
     if (existing?.is_connected) {
       await db.integrations.disconnect(existing.id)
       setIntegrations(prev => prev.filter(i => i.id !== existing.id))
       return
     }
-
-    if (provider === 'google_drive' && oauth) {
-      const result = await db.integrations.oauthUrl('google_drive')
-      if (!result.configured || !result.url) {
-        setToast(result.message || 'Google OAuth not configured in backend/.env')
-        return
-      }
-      window.location.href = result.url
-      return
-    }
-
-    setToast(`${provider} OAuth ships in Phase 4b`)
+    await connectProvider(provider)
   }
 
-  async function syncDrive() {
-    setSyncing('google_drive')
+  async function syncProvider(provider: string) {
+    setSyncing(provider)
     try {
-      const result = await db.integrations.sync('google_drive')
-      setToast(result.message || `Imported ${result.imported ?? 0} file(s)`)
+      const result = await db.integrations.sync(provider)
+      setToast(result.message || `Synced ${result.imported ?? 0} item(s)`)
       const ints = await db.integrations.list()
       setIntegrations(ints || [])
     } catch (e: any) {
@@ -115,8 +125,6 @@ export function SettingsTab({ user }: { user: any }) {
   }
 
   if (!profile || !prefs) return <div className="text-surface-500">Loading...</div>
-
-  const driveConnected = integrations.some(i => i.provider === 'google_drive' && i.is_connected)
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -185,20 +193,25 @@ export function SettingsTab({ user }: { user: any }) {
                         Last sync: {new Date(row.last_sync_at).toLocaleString()}
                       </div>
                     )}
+                    {p.id === 'outlook' && connected && row?.settings?.linked_messages?.length > 0 && (
+                      <div className="text-[10px] text-surface-600">
+                        {row.settings.linked_messages.length} email(s) linked
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  {p.id === 'google_drive' && connected && (
+                  {connected && (
                     <button
-                      onClick={syncDrive}
-                      disabled={syncing === 'google_drive'}
+                      onClick={() => syncProvider(p.id)}
+                      disabled={syncing === p.id}
                       className="px-3 py-1.5 rounded-lg text-xs font-medium bg-brand-500/15 text-brand-300 disabled:opacity-50"
                     >
-                      {syncing === 'google_drive' ? 'Syncing...' : 'Sync'}
+                      {syncing === p.id ? 'Syncing...' : p.syncLabel}
                     </button>
                   )}
                   <button
-                    onClick={() => toggleIntegration(p.id, p.oauth)}
+                    onClick={() => toggleIntegration(p.id)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium ${
                       connected ? 'bg-emerald-500/15 text-emerald-300' : 'bg-white/[0.06] text-surface-300'
                     }`}
@@ -211,8 +224,9 @@ export function SettingsTab({ user }: { user: any }) {
           })}
         </div>
         <p className="text-[10px] text-surface-600 mt-3">
-          Google Drive: create a folder named <strong>GeoMind Imports</strong> in Drive, add survey files, then Sync.
-          Set <code className="font-mono">GOOGLE_CLIENT_ID</code> and <code className="font-mono">GOOGLE_CLIENT_SECRET</code> in backend/.env.
+          Drive/OneDrive: create folder <strong>GeoMind Imports</strong>, add survey files, then Sync.
+          Google → <code className="font-mono">GOOGLE_CLIENT_ID</code> / <code className="font-mono">GOOGLE_CLIENT_SECRET</code>.
+          Microsoft → <code className="font-mono">MICROSOFT_CLIENT_ID</code> / <code className="font-mono">MICROSOFT_CLIENT_SECRET</code> in backend/.env.
         </p>
       </div>
 
@@ -228,7 +242,7 @@ export function SettingsTab({ user }: { user: any }) {
         <h3 className="text-sm font-semibold mb-2">Account</h3>
         <div className="text-xs text-surface-500 space-y-1">
           <div>User ID: {user.id}</div>
-          <div>Mode: Supabase API (Phase 4)</div>
+          <div>Mode: Supabase API (Phase 4b)</div>
         </div>
       </div>
     </div>

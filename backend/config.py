@@ -22,6 +22,12 @@ class Settings(BaseSettings):
     google_client_secret: str = ""
     google_redirect_uri: str = "http://localhost:3001/api/integrations/google_drive/oauth/callback"
 
+    # Microsoft Graph OAuth (Phase 4b — OneDrive + Outlook)
+    microsoft_client_id: str = ""
+    microsoft_client_secret: str = ""
+    microsoft_onedrive_redirect_uri: str = "http://localhost:3001/api/integrations/onedrive/oauth/callback"
+    microsoft_outlook_redirect_uri: str = "http://localhost:3001/api/integrations/outlook/oauth/callback"
+
     # App
     app_url: str = "http://localhost:5173"
     node_env: str = "development"

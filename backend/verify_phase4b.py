@@ -1,10 +1,10 @@
-"""Phase 4 verification — Google Drive OAuth endpoints + integrations."""
+"""Phase 4b verification — Microsoft OneDrive/Outlook + connectivity."""
 import json
 import sys
 import urllib.request
 import urllib.error
 
-BASE = "http://localhost:3001"
+BASE = "http://127.0.0.1:3001"
 
 
 def req(method, path, body=None):
@@ -28,40 +28,35 @@ def ok(label, passed, detail=""):
 
 
 def main():
-    print("GeoMind Phase 4 Verification\n" + "=" * 40)
+    print("GeoMind Phase 4b Verification\n" + "=" * 40)
     results = []
 
     code, health = req("GET", "/api/health")
     results.append(ok(
-        "Health v4+",
+        "Health 4b",
         code == 200 and health.get("status") == "ok",
-        f"phase={health.get('phase')} oauth={health.get('google_drive_oauth')}",
+        f"phase={health.get('phase')} msft={health.get('microsoft_oauth')}",
     ))
 
-    code, oauth = req("GET", "/api/integrations/google_drive/oauth/url")
-    results.append(ok(
-        "Drive OAuth URL endpoint",
-        code == 200 and "configured" in oauth,
-        f"configured={oauth.get('configured')}",
-    ))
+    for provider in ("google_drive", "onedrive", "outlook"):
+        code, oauth = req("GET", f"/api/integrations/{provider}/oauth/url")
+        results.append(ok(
+            f"{provider} OAuth URL",
+            code == 200 and "configured" in oauth,
+            f"configured={oauth.get('configured')}",
+        ))
 
     code, integrations = req("GET", "/api/integrations/")
     results.append(ok("Integrations list", code == 200 and isinstance(integrations, list), f"{len(integrations)} rows"))
 
-    code, sync_res = req("POST", "/api/integrations/google_drive/sync", {})
-    detail = str(sync_res.get("detail", sync_res.get("message", ""))).lower()
-    results.append(ok(
-        "Drive sync",
-        code in (200, 400, 503),
-        sync_res.get("message") or sync_res.get("detail", f"HTTP {code}"),
-    ))
-
-    code, scaffold = req("POST", "/api/integrations/onedrive/sync", {})
-    results.append(ok(
-        "OneDrive scaffold",
-        code == 400,
-        scaffold.get("detail", "not connected"),
-    ))
+    for provider in ("onedrive", "outlook"):
+        code, sync_err = req("POST", f"/api/integrations/{provider}/sync", {})
+        detail = str(sync_err.get("detail", "")).lower()
+        results.append(ok(
+            f"{provider} sync guard",
+            code in (400, 503) and ("not connected" in detail or "not configured" in detail),
+            sync_err.get("detail", ""),
+        ))
 
     passed = sum(1 for r in results if r)
     print(f"\nResult: {passed}/{len(results)} passed")

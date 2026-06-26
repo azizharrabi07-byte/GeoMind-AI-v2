@@ -23,11 +23,11 @@ export default function App() {
   const isAppRoute = parsed.page === 'dashboard' || parsed.page === 'project'
 
   const loadUser = useCallback(async () => {
-    const u = await fetchCurrentUser()
+    const [u, online] = await Promise.all([fetchCurrentUser(), isApiReachable()])
     setUser(u)
-    setApiOffline(!!u.apiOffline)
+    setApiOffline(!online)
     setReady(true)
-    return u
+    return { ...u, apiOffline: !online }
   }, [])
 
   useEffect(() => {
